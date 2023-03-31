@@ -2,6 +2,7 @@ package io.mavsdk.androidclient;
 
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -248,17 +249,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
   private void runMavsdkServer() {
     MavsdkEventQueue.executor().execute(() -> {
-      int mavsdkServerPort = mavsdkServer.run();
-      drone = new System(BACKEND_IP_ADDRESS, mavsdkServerPort);
 
-      disposables.add(drone.getTelemetry().getFlightMode().distinctUntilChanged()
-              .subscribe(flightMode -> logger.debug("flight mode: " + flightMode)));
-      disposables.add(drone.getTelemetry().getArmed().distinctUntilChanged()
-              .subscribe(armed -> logger.debug("armed: " + armed)));
-      disposables.add(drone.getTelemetry().getPosition().subscribe(position -> {
-        LatLng latLng = new LatLng(position.getLatitudeDeg(), position.getLongitudeDeg());
-        viewModel.currentPositionLiveData.postValue(latLng);
-      }));
+        AsyncTask.execute(() -> {
+            int mavsdkServerPort = mavsdkServer.run();
+            drone = new System(BACKEND_IP_ADDRESS, mavsdkServerPort);
+
+            disposables.add(drone.getTelemetry().getFlightMode().distinctUntilChanged()
+                    .subscribe(flightMode -> logger.debug("flight mode: " + flightMode)));
+            disposables.add(drone.getTelemetry().getArmed().distinctUntilChanged()
+                    .subscribe(armed -> logger.debug("armed: " + armed)));
+            disposables.add(drone.getTelemetry().getPosition().subscribe(position -> {
+                LatLng latLng = new LatLng(position.getLatitudeDeg(), position.getLongitudeDeg());
+                viewModel.currentPositionLiveData.postValue(latLng);
+            }));
+        });
 
       isMavsdkServerRunning = true;
       runOnUiThread(() -> buttonRunDestroyMavsdkServer.setText(R.string.destroy_mavsdk_server));
